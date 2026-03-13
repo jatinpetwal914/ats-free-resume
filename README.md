@@ -1,4 +1,4 @@
-# ATS Pro Resume Analyzer
+# Resume Analyser (Is Your Resume Perfect !! ?)
 
 Production-ready ATS (Applicant Tracking System) resume checker built with Next.js 14, TailwindCSS, Framer Motion, and OpenAI.
 

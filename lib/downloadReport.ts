@@ -19,7 +19,7 @@ export function downloadReportAsPDF(
     const pageW = doc.internal.pageSize.getWidth();
 
     doc.setFontSize(18);
-    doc.text('ATS Pro Resume Analyzer - Report', 20, y);
+    doc.text('Resume Analyser (Is Your Resume Perfect !! ?) - Report', 20, y);
     y += lineH + 4;
     doc.setFontSize(10);
     doc.setTextColor(100, 100, 100);
@@ -27,7 +27,7 @@ export function downloadReportAsPDF(
     y += lineH + 6;
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(12);
-    doc.text(`ATS Score: ${result.score}`, 20, y);
+    doc.text(`ATS Compatibility Score: ${result.score}`, 20, y);
     y += lineH;
     doc.text(`Skills Match: ${result.skillsMatch}%`, 20, y);
     y += lineH + 4;

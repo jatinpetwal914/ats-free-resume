@@ -1,5 +1,9 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import type { ATSAnalysisResult } from '@/types';
+import type {
+  ATSAnalysisResult,
+  ParsedResume,
+  RuleBasedATSScoring,
+} from '@/types';
 
 const JSON_SCHEMA: ATSAnalysisResult = {
   score: 0,
@@ -24,7 +28,11 @@ function extractJSON(text: string): string {
 
 export async function analyzeResumeWithAI(
   resumeText: string,
-  jobDescription: string
+  jobDescription: string,
+  parsed: ParsedResume,
+  ruleBased: RuleBasedATSScoring,
+  company: string | null,
+  role: string | null
 ): Promise<ATSAnalysisResult> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY is not configured');
@@ -53,63 +61,100 @@ export async function analyzeResumeWithAI(
     { apiVersion }
   );
 
-  const systemPrompt = `You are an ATS (Applicant Tracking System) and professional recruiter. Analyze the resume against the job description. Return ONLY valid JSON, no markdown or extra text.`;
+  const systemPrompt = `You are a senior recruiter and ATS (Applicant Tracking System) that produces professional ATS reports. You are given:
+- Parsed resume structure (sections, skills, education, experience, projects).
+- The job description.
+- Rule-based ATS scores that already combine keyword match, skills relevance, education, experience, projects, formatting and quantified achievements.
 
-  const userPrompt = `Analyze this resume against the job description.
+Your job:
+- Keep the numeric scores roughly consistent with the provided rule-based scores (do NOT drastically change them).
+- Focus on insight: strengths, weaknesses, missing skills, and actionable improvement suggestions.
+- Respond with STRICT JSON only – no markdown, no prose outside JSON.`;
 
-RESUME:
----
-${resumeText.slice(0, 12000)}
----
+  const context = {
+    company,
+    role,
+    jobDescription: jobDescription.slice(0, 4000),
+    parsedResume: parsed,
+    ruleBasedScores: ruleBased,
+  };
 
-JOB DESCRIPTION:
----
-${jobDescription.slice(0, 4000)}
----
+  const userPrompt = `Using the following JSON context, produce a professional ATS review.
 
-Return ONLY a single JSON object with this exact structure (use arrays/lists as specified):
+CONTEXT JSON:
+${JSON.stringify(context)}
+
+Return ONLY a single JSON object with this exact structure:
 {
-  "score": <number 0-100, overall ATS compatibility score>,
-  "skillsMatch": <number 0-100, percentage of job-required skills found in resume>,
-  "missingKeywords": [<array of important keywords from job description that are missing in resume>],
-  "suggestions": {
-    "skills": [<array of specific skill suggestions to add>],
-    "experience": [<array of experience-related improvements>],
-    "formatting": [<array of formatting/ATS compatibility fixes>],
-    "summary": [<array of summary or profile section improvements>]
-  },
-  "improvedSummary": "<2-4 sentence rewritten professional summary optimized for this role>",
-  "improvedBulletExamples": [<array of 3-5 rewritten achievement bullet points with quantification and action verbs>],
-  "strengths": [<array of 3-5 resume strengths for this role>],
-  "weaknesses": [<array of 3-5 areas to improve>],
-  "sectionBreakdown": {
-    "<section name e.g. Summary>": { "score": <0-100>, "notes": [<array of 1-2 notes>] },
-    "<Experience>": { "score": <0-100>, "notes": [<array>] },
-    "<Skills>": { "score": <0-100>, "notes": [<array>] },
-    "<Education>": { "score": <0-100>, "notes": [<array>] }
-  },
-  "keywordDensity": {
-    "<keyword from job>": <number 0-100 representing how well resume reflects this>,
-    "<another keyword>": <number>
-  },
-  "atsWarnings": [<array of ATS compatibility warnings, e.g. table formatting, graphics, wrong file type>]
+  "ATSScore": <number 0-100, aligned with ruleBasedScores.score>,
+  "strengths": [<array of 3-7 concise strengths tailored to the role>],
+  "weaknesses": [<array of 3-7 concise weaknesses or risks>],
+  "missingKeywords": [<array of important skills/keywords that are low or missing, especially from ruleBasedScores.missingKeywords>],
+  "resumeSummaryFeedback": "<1-2 short paragraphs critiquing the resume summary/profile section>",
+  "experienceFeedback": "<1-2 short paragraphs critiquing work experience and quantified impact>",
+  "skillsFeedback": "<1 paragraph critiquing the skills section coverage vs role requirements>",
+  "formattingFeedback": "<1 paragraph about formatting and ATS compatibility>",
+  "improvedSummarySuggestion": "<2-4 sentence rewritten professional summary optimized for this company and role>",
+  "improvedBulletPoints": [<array of 3-6 high-impact, quantified bullet examples tailored to the role>],
+  "skillGapAnalysis": [<array of 5-10 key gaps where the resume could better match the role>]
 }`;
 
-  const result = await model.generateContent(`${systemPrompt}\n\n${userPrompt}`);
+  const result = await model.generateContent(
+    `${systemPrompt}\n\nUSER PROMPT:\n${userPrompt}`
+  );
   const response = result.response;
   const content = response.text();
   if (!content) throw new Error('Empty response from Gemini');
 
   const raw = extractJSON(content);
-  const parsed = JSON.parse(raw) as ATSAnalysisResult;
+  const ai = JSON.parse(raw) as {
+    ATSScore?: number;
+    strengths?: string[];
+    weaknesses?: string[];
+    missingKeywords?: string[];
+    resumeSummaryFeedback?: string;
+    experienceFeedback?: string;
+    skillsFeedback?: string;
+    formattingFeedback?: string;
+    improvedSummarySuggestion?: string;
+    improvedBulletPoints?: string[];
+    skillGapAnalysis?: string[];
+  };
+
+  const combinedMissing = Array.from(
+    new Set([...(ruleBased.missingKeywords ?? []), ...(ai.missingKeywords ?? [])])
+  );
+
   return {
     ...JSON_SCHEMA,
-    ...parsed,
+    score: ruleBased.score,
+    skillsMatch: ruleBased.skillsMatch,
+    jobMatchScore: ruleBased.jobMatchScore,
+    subScores: ruleBased.subScores,
+    missingKeywords: combinedMissing,
+    strengths: ai.strengths ?? [],
+    weaknesses: ai.weaknesses ?? [],
+    improvedSummary: ai.improvedSummarySuggestion ?? '',
+    improvedBulletExamples: ai.improvedBulletPoints ?? [],
+    resumeSummaryFeedback: ai.resumeSummaryFeedback,
+    experienceFeedback: ai.experienceFeedback,
+    skillsFeedback: ai.skillsFeedback,
+    formattingFeedback: ai.formattingFeedback,
+    skillGapAnalysis: ai.skillGapAnalysis ?? [],
+    sectionBreakdown: ruleBased.sectionBreakdown,
+    keywordDensity: ruleBased.keywordDensity,
+    atsWarnings: ruleBased.atsWarnings,
     suggestions: {
-      skills: parsed.suggestions?.skills ?? [],
-      experience: parsed.suggestions?.experience ?? [],
-      formatting: parsed.suggestions?.formatting ?? [],
-      summary: parsed.suggestions?.summary ?? [],
+      skills: (ai.skillGapAnalysis ?? []).slice(0, 10),
+      experience: ai.experienceFeedback
+        ? ai.experienceFeedback.split(/\n+/).filter(Boolean)
+        : [],
+      formatting: ai.formattingFeedback
+        ? ai.formattingFeedback.split(/\n+/).filter(Boolean)
+        : [],
+      summary: ai.resumeSummaryFeedback
+        ? ai.resumeSummaryFeedback.split(/\n+/).filter(Boolean)
+        : [],
     },
   };
 }

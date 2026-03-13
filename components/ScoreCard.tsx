@@ -66,7 +66,7 @@ export default function ScoreCard({
             </div>
           </motion.div>
           <p className="text-center text-slate-400 text-sm mt-2 font-medium">
-            ATS Score
+            ATS Compatibility Score
           </p>
         </div>
         <div className="flex-1 w-full space-y-4">
@@ -84,6 +84,52 @@ export default function ScoreCard({
               />
             </div>
           </div>
+
+          {typeof result.jobMatchScore === 'number' && (
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span className="text-slate-400">Job description match</span>
+                <span className="text-purple-400 font-medium">
+                  {Math.round(result.jobMatchScore)}%
+                </span>
+              </div>
+              <div className="h-3 rounded-full bg-slate-800 overflow-hidden">
+                <motion.div
+                  className="h-full bg-gradient-to-r from-purple-400 to-pink-500 rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${result.jobMatchScore}%` }}
+                  transition={{ duration: 1, delay: 0.6 }}
+                />
+              </div>
+            </div>
+          )}
+
+          {result.subScores && (
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              {Object.entries(result.subScores).map(([key, value]) => (
+                <div key={key} className="space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">
+                      {key
+                        .replace(/([A-Z])/g, ' $1')
+                        .replace(/^./, (c) => c.toUpperCase())}
+                    </span>
+                    <span className="text-slate-300 font-medium">
+                      {Math.round(value)}
+                    </span>
+                  </div>
+                  <div className="h-2 rounded-full bg-slate-900 overflow-hidden">
+                    <motion.div
+                      className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min(100, Math.max(0, value))}%` }}
+                      transition={{ duration: 0.8 }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
           {(result.strengths?.length ?? 0) > 0 && (
             <div>
               <h4 className="text-slate-300 font-semibold text-sm mb-2">

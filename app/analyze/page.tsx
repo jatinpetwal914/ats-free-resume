@@ -64,6 +64,8 @@ export default function AnalyzePage() {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('jobDescription', jobDescription);
+      if (company) formData.append('company', company);
+      if (role) formData.append('role', role);
       const res = await fetch('/api/analyze', {
         method: 'POST',
         body: formData,
@@ -127,7 +129,7 @@ export default function AnalyzePage() {
             Back
           </Link>
           <h1 className="text-xl font-semibold bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
-            ATS Pro Resume Analyzer
+            Resume Analyser (Is Your Resume Perfect !! ?)
           </h1>
           <div className="w-20" />
         </motion.div>

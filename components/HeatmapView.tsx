@@ -32,7 +32,7 @@ export default function HeatmapView({ result }: HeatmapViewProps) {
       className="glass rounded-2xl p-4 border border-slate-700/50"
     >
       <h3 className="text-slate-200 font-semibold text-sm mb-3">
-        Resume heatmap
+        Resume section scores
       </h3>
       <div className="space-y-3">
         {sections.map(([name, data]) => (

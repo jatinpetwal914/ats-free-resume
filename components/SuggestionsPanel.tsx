@@ -166,43 +166,71 @@ export default function SuggestionsPanel({
           {(result.suggestions.skills || []).map((s, i) => (
             <li key={i}>• {s}</li>
           ))}
-          {(!result.suggestions.skills || result.suggestions.skills.length === 0) && (
-            <li className="text-slate-500">No specific skill suggestions.</li>
-          )}
+          {result.skillGapAnalysis?.length
+            ? result.skillGapAnalysis.map((g, i) => (
+                <li key={`gap-${i}`}>• {g}</li>
+              ))
+            : null}
+          {(!result.suggestions.skills ||
+            result.suggestions.skills.length === 0) &&
+            (!result.skillGapAnalysis || result.skillGapAnalysis.length === 0) && (
+              <li className="text-slate-500">No specific skill suggestions.</li>
+            )}
         </ul>
       </Section>
 
       <Section title="Experience" icon={FileText}>
-        <ul className="text-slate-400 text-sm space-y-1">
-          {(result.suggestions.experience || []).map((s, i) => (
-            <li key={i}>• {s}</li>
-          ))}
-          {(!result.suggestions.experience || result.suggestions.experience.length === 0) && (
-            <li className="text-slate-500">No experience suggestions.</li>
+        <div className="space-y-2 text-slate-400 text-sm">
+          {result.experienceFeedback && (
+            <p className="whitespace-pre-wrap">{result.experienceFeedback}</p>
           )}
-        </ul>
+          <ul className="space-y-1">
+            {(result.suggestions.experience || []).map((s, i) => (
+              <li key={i}>• {s}</li>
+            ))}
+            {(!result.suggestions.experience ||
+              result.suggestions.experience.length === 0) &&
+              !result.experienceFeedback && (
+                <li className="text-slate-500">No experience suggestions.</li>
+              )}
+          </ul>
+        </div>
       </Section>
 
       <Section title="Formatting" icon={Layout}>
-        <ul className="text-slate-400 text-sm space-y-1">
-          {(result.suggestions.formatting || []).map((s, i) => (
-            <li key={i}>• {s}</li>
-          ))}
-          {(!result.suggestions.formatting || result.suggestions.formatting.length === 0) && (
-            <li className="text-slate-500">No formatting suggestions.</li>
+        <div className="space-y-2 text-slate-400 text-sm">
+          {result.formattingFeedback && (
+            <p className="whitespace-pre-wrap">{result.formattingFeedback}</p>
           )}
-        </ul>
+          <ul className="space-y-1">
+            {(result.suggestions.formatting || []).map((s, i) => (
+              <li key={i}>• {s}</li>
+            ))}
+            {(!result.suggestions.formatting ||
+              result.suggestions.formatting.length === 0) &&
+              !result.formattingFeedback && (
+                <li className="text-slate-500">No formatting suggestions.</li>
+              )}
+          </ul>
+        </div>
       </Section>
 
       <Section title="Summary & profile" icon={MessageSquare}>
-        <ul className="text-slate-400 text-sm space-y-1">
-          {(result.suggestions.summary || []).map((s, i) => (
-            <li key={i}>• {s}</li>
-          ))}
-          {(!result.suggestions.summary || result.suggestions.summary.length === 0) && (
-            <li className="text-slate-500">No summary suggestions.</li>
+        <div className="space-y-2 text-slate-400 text-sm">
+          {result.resumeSummaryFeedback && (
+            <p className="whitespace-pre-wrap">{result.resumeSummaryFeedback}</p>
           )}
-        </ul>
+          <ul className="space-y-1">
+            {(result.suggestions.summary || []).map((s, i) => (
+              <li key={i}>• {s}</li>
+            ))}
+            {(!result.suggestions.summary ||
+              result.suggestions.summary.length === 0) &&
+              !result.resumeSummaryFeedback && (
+                <li className="text-slate-500">No summary suggestions.</li>
+              )}
+          </ul>
+        </div>
       </Section>
 
       {result.atsWarnings && result.atsWarnings.length > 0 && (

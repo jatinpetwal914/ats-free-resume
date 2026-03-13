@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'ATS Pro Resume Analyzer',
-  description: 'AI-powered ATS resume checker for tech excellence',
+  title: 'Resume Analyser (Is Your Resume Perfect !! ?)',
+  description: 'AI-powered ATS compatibility checker for tech excellence',
 };
 
 export default function RootLayout({
